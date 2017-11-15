@@ -1,11 +1,10 @@
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 #include "DFRobotDFPlayerMini.h"
+#define DEBUG
 #include "DebugUtils.h"
 
-#define DEBUG
-
-#define LED1 9
+#define LED1 5//9
 #define LED2 8
 #define BUZZER 13
 #define BUTTON1 3
@@ -19,12 +18,24 @@ int timeSelected = 0;
 int timeToWait[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 45, 60};
 unsigned long timer;
 
+volatile bool button1PressedFlag = false;
+volatile unsigned long button1PressedTime = 0;
+
+volatile bool button2PressedFlag = false;
+volatile unsigned long button2PressedTime = 0;
+
 void setup()
 {
+  button1PressedFlag = false;
+  button1PressedTime = 0;
+
+  button2PressedFlag = false;
+  button2PressedTime = 0;
+
 #ifdef DEBUG
   Serial.begin(9600);
 #endif
-  
+
   initDfPlayer();
 
   pinMode(LED1, OUTPUT);
@@ -38,31 +49,40 @@ void setup()
   // different seed numbers each time the sketch runs.
   // randomSeed() will then shuffle the random function.
   randomSeed(analogRead(0));
+
+  attachInterrupt(digitalPinToInterrupt(BUTTON1), button1Handler, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON1), button2Handler, CHANGE);
+
+  DEBUG_PRINT("init done");
 }
 
 void loop()
 {
   // Button 1 pressed (select time)
-  if (digitalRead(BUTTON1) == HIGH) {
-    timeSelected += 1;
+  if (button1PressedFlag == true) {
+    button1PressedFlag = false;
 
+    timeSelected += 1;
     if (timeSelected > 16) {
-      DEBUG_PRINT("Timer set to OFF");
-      timeSelected = 0;
-      timer = 0;
-      digitalWrite(LED1, LOW);
-      dfPlayer.playFolder(1, 100);  // SD:/01/100.mp3; Folder Name(1~99); File Name(1~255)
+      setTimerOff();
     } else {
-      DEBUG_PRINT("Time select set to " + timeToWait[timeSelected] + " minutes");
+      DEBUG_PRINT("Time select set to " + String(timeToWait[timeSelected]) + " minutes");
       digitalWrite(LED1, HIGH);
       timer = millis();
       dfPlayer.playFolder(1, timeToWait[timeSelected]);
     }
   }
 
+  // Button 1 long press
+  if ((button1PressedTime != 0) && ((millis() - button1PressedTime) > 1000) && button1PressedFlag == false) {
+    button1PressedTime = 0;
+    setTimerOff();
+  }
+
   // Button 2 pressed (say time remaining)
-  if (digitalRead(BUTTON2) == HIGH) {
-    int remainingTime = (timer + timeToWait[timeSelected]*60000 - millis()) / 60000;
+  if (button2PressedFlag == true) {
+    button2PressedFlag = false;
+    int remainingTime = (timer + timeToWait[timeSelected] * 60000 - millis()) / 60000;
     if (remainingTime = 0) {
       remainingTime = 1;
     }
@@ -77,15 +97,53 @@ void loop()
       timer = 0;
       timeSelected = 0;
       digitalWrite(LED1, LOW);
-      dfPlayer.playFolder(2, random(1, 10));
+      dfPlayer.playFolder(2, random(1, 22));
     }
   }
 
 #ifdef DEBUG
-  if (dfPlayer.available()) {
-    printDfPlayerDetail(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
-  }
+    if (dfPlayer.available()) {
+      printDfPlayerDetail(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+    }
 #endif
+
+
+}
+
+void setTimerOff() {
+  DEBUG_PRINT("Timer set to OFF");
+  timeSelected = 0;
+  timer = 0;
+  digitalWrite(LED1, LOW);
+  dfPlayer.playFolder(1, 100);  // SD:/01/100.mp3; Folder Name(1~99); File Name(1~255)
+}
+
+void button1Handler() {
+  if ((millis() - button1PressedTime) > 50) {
+    if (digitalRead(BUTTON1) == LOW) {
+      if (button1PressedTime != 0) {
+        button1PressedFlag = true;
+      }
+        
+      button1PressedTime = 0;
+    } else if (digitalRead(BUTTON1) == HIGH && button1PressedTime == 0) {
+      button1PressedTime = millis();
+    }
+  }
+}
+
+void button2Handler() {
+  if ((millis() - button2PressedTime) > 50) {
+    if (digitalRead(BUTTON2) == LOW) {
+      if (button2PressedTime != 0) {
+        button2PressedFlag = true;
+      }
+        
+      button2PressedTime = 0;
+    } else if (digitalRead(BUTTON2) == HIGH && button2PressedTime == 0) {
+      button2PressedTime = millis();
+    }
+  }
 }
 
 void initDfPlayer() {
@@ -108,7 +166,7 @@ void initDfPlayer() {
   Serial.println(F("DFPlayer Mini online."));
 #endif
 
-  dfPlayer.volume(30);  //Set volume value. From 0 to 30
+  dfPlayer.volume(25);  //Set volume value. From 0 to 30
   dfPlayer.play(1);  //Play the first mp3
 }
 
@@ -166,3 +224,4 @@ void printDfPlayerDetail(uint8_t type, int value) {
       break;
   }
 }
+
