@@ -2,12 +2,10 @@
 #include "SoftwareSerial.h"
 #include "DFRobotDFPlayerMini.h"
 #include <LowPower.h>
-#define DEBUG
+//#define DEBUG
 #include "DebugUtils.h"
 
-#define LED1 5//9
-#define LED2 8
-#define BUZZER 13
+#define LED1 9
 #define BUTTON1 3
 #define BUTTON2 2
 #define DFPLAYER_RX_PIN 10
@@ -27,14 +25,14 @@ volatile bool button2PressedFlag = false;
 volatile unsigned long button2PressedTime = 0;
 
 bool led1Blink = false;
-int led1State = LOW;
+int led1State = HIGH;
 
 void setup()
 {
   timeSelected = 0;
   timer = 0;
   lastVoice = 0;
-  
+
   button1PressedFlag = false;
   button1PressedTime = 0;
 
@@ -42,7 +40,7 @@ void setup()
   button2PressedTime = 0;
 
   led1Blink = false;
-  led1State = LOW;
+  led1State = HIGH;
 
 #ifdef DEBUG
   Serial.begin(9600);
@@ -51,8 +49,6 @@ void setup()
   initDfPlayer();
 
   pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(BUZZER, OUTPUT);
   pinMode(BUTTON1, INPUT);
   pinMode(BUTTON2, INPUT);
 
@@ -65,6 +61,7 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(BUTTON1), button1Handler, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON2), button2Handler, CHANGE);
 
+  digitalWrite(LED1, led1State);
   DEBUG_PRINT("init done");
 }
 
@@ -96,31 +93,31 @@ void loop()
   if (button2PressedFlag == true) {
     button2PressedFlag = false;
     int remainingTime = (timer + timeToWait[timeSelected] * 60000 - millis()) / 60000;
-    if (remainingTime = 0) {
+    if (remainingTime == 0) {
       remainingTime = 1;
     }
-    DEBUG_PRINT("Remaining time: " + remainingTime);
-    dfPlayer.playFolder(1, remainingTime);
+    DEBUG_PRINT("Remaining time: " + String(remainingTime));
+    dfPlayer.playFolder(4, remainingTime);
   }
 
   // timer running
   if (timer > 0) {
     unsigned long remainingTimeS = (timer + timeToWait[timeSelected] * 60000 - millis()) / 1000;
 
-    // countdown almost finish
-    if (remainingTimeS <= 5 && remainingTimeS > 3 && (millis() - lastVoice > 5000)) {
-        DEBUG_PRINT("5 secondes remaining");
-        dfPlayer.playFolder(3, 5);
-        lastVoice = millis();
-      }
-    
     // countdown finish
-    if (remainingTimeS <= 0) {
+    if (remainingTimeS <= 0 && remainingTimeS > -3 && (millis() - lastVoice > 3500)) {
       DEBUG_PRINT("Countdown timer elapsed");
+      dfPlayer.playFolder(3, 5);
+      lastVoice = millis();
+    }
+
+    // countdown finish, play funny song after alert
+    if (remainingTimeS <= -8) {
+      DEBUG_PRINT("Play funny song");
       timer = 0;
       timeSelected = 0;
       led1Blink = false;
-      dfPlayer.playFolder(2, random(1, 22));
+      dfPlayer.playFolder(2, random(1, 80));
     }
 
     //say time remaining auto
@@ -129,8 +126,8 @@ void loop()
         DEBUG_PRINT("1 minute remaining");
         dfPlayer.playFolder(3, 1);
         lastVoice = millis();
-      } else if (remainingTimeS <= 300 && remainingTimeS > 295) {   // 5 minutes
-        DEBUG_PRINT("5 minute remaining");
+      } else if (remainingTimeS <= 180 && remainingTimeS > 175) {   // 3 minutes
+        DEBUG_PRINT("3 minute remaining");
         dfPlayer.playFolder(3, 2);
         lastVoice = millis();
       } else if (remainingTimeS <= 600 && remainingTimeS > 595) {   // 10 minutes
@@ -149,25 +146,26 @@ void loop()
       led1State = LOW;
     }
     digitalWrite(LED1, led1State);
-  } else if (led1State == HIGH) {
-    led1State = LOW;
+  } else if (led1State == LOW) {
+    led1State = HIGH;
     digitalWrite(LED1, led1State);
   }
 
 #ifdef DEBUG
-    if (dfPlayer.available()) {
-      printDfPlayerDetail(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
-    }
+  if (dfPlayer.available()) {
+    printDfPlayerDetail(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+  }
 #endif
 
 #ifdef DEBUG
   delay(250);
 #else
-    if (timer > 0) {
-      LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
-    } else {
-      LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-    }
+  delay(250);
+//  if (timer > 0) {
+//    LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
+//  } else {
+//    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+//  }
 #endif
 }
 
@@ -185,7 +183,7 @@ void button1Handler() {
       if (button1PressedTime != 0) {
         button1PressedFlag = true;
       }
-        
+
       button1PressedTime = 0;
     } else if (digitalRead(BUTTON1) == HIGH && button1PressedTime == 0) {
       button1PressedTime = millis();
@@ -199,7 +197,7 @@ void button2Handler() {
       if (button2PressedTime != 0) {
         button2PressedFlag = true;
       }
-        
+
       button2PressedTime = 0;
     } else if (digitalRead(BUTTON2) == HIGH && button2PressedTime == 0) {
       button2PressedTime = millis();
@@ -227,7 +225,7 @@ void initDfPlayer() {
   Serial.println(F("DFPlayer Mini online."));
 #endif
 
-  dfPlayer.volume(25);  //Set volume value. From 0 to 30
+  dfPlayer.volume(20);  //Set volume value. From 0 to 30
   dfPlayer.play(1);  //Play the first mp3
 }
 
