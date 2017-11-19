@@ -19,10 +19,10 @@ unsigned long timer;
 unsigned long lastVoice = 0;
 
 volatile bool button1PressedFlag = false;
-volatile unsigned long button1PressedTime = 0;
+volatile unsigned long button1PressedTime = millis();
 
 volatile bool button2PressedFlag = false;
-volatile unsigned long button2PressedTime = 0;
+volatile unsigned long button2PressedTime = millis();
 
 bool led1Blink = false;
 int led1State = HIGH;
@@ -96,17 +96,23 @@ void loop()
     if (remainingTime == 0) {
       remainingTime = 1;
     }
-    DEBUG_PRINT("Remaining time: " + String(remainingTime));
-    dfPlayer.playFolder(4, remainingTime);
+
+    if (remainingTime <= 60) {
+      DEBUG_PRINT("Remaining time: " + String(remainingTime));
+      dfPlayer.playFolder(4, remainingTime);
+    } else {
+      dfPlayer.playFolder(3, 4);  // SD:/01/100.mp3; Folder Name(1~99); File Name(1~255)
+    }
   }
 
   // timer running
   if (timer > 0) {
-    unsigned long remainingTimeS = (timer + timeToWait[timeSelected] * 60000 - millis()) / 1000;
+    long remainingTimeS = long ((timer + timeToWait[timeSelected] * 60000 - millis())) / 1000;
 
     // countdown finish
-    if (remainingTimeS <= 0 && remainingTimeS > -3 && (millis() - lastVoice > 3500)) {
+    if (remainingTimeS <= 0 && remainingTimeS > -3 && (millis() - lastVoice > 5000)) {
       DEBUG_PRINT("Countdown timer elapsed");
+      led1Blink = false;
       dfPlayer.playFolder(3, 5);
       lastVoice = millis();
     }
@@ -116,7 +122,6 @@ void loop()
       DEBUG_PRINT("Play funny song");
       timer = 0;
       timeSelected = 0;
-      led1Blink = false;
       dfPlayer.playFolder(2, random(1, 80));
     }
 
@@ -174,7 +179,7 @@ void setTimerOff() {
   timeSelected = 0;
   timer = 0;
   led1Blink = false;
-  dfPlayer.playFolder(3, 4);  // SD:/01/100.mp3; Folder Name(1~99); File Name(1~255)
+  dfPlayer.playFolder(1, 61);  // SD:/01/100.mp3; Folder Name(1~99); File Name(1~255)
 }
 
 void button1Handler() {
