@@ -127,17 +127,29 @@ void loop()
 
     //say time remaining auto
     if (millis() - lastVoice > 30000) {
-      if (remainingTimeS <= 60 && remainingTimeS > 55) {          // 1 minutes
+      if (remainingTimeS <= 60 && remainingTimeS > 55) {            // 1 minutes
         DEBUG_PRINT("1 minute remaining");
         dfPlayer.playFolder(3, 1);
+        lastVoice = millis();
+      } else if (remainingTimeS <= 120 && remainingTimeS > 115) {   // 2 minutes
+        dfPlayer.playFolder(2, random(1, 80));
         lastVoice = millis();
       } else if (remainingTimeS <= 180 && remainingTimeS > 175) {   // 3 minutes
         DEBUG_PRINT("3 minute remaining");
         dfPlayer.playFolder(3, 2);
         lastVoice = millis();
+      } else if (remainingTimeS <= 300 && remainingTimeS > 295) {   // 5 minutes
+        dfPlayer.playFolder(2, random(1, 80));
+        lastVoice = millis();
       } else if (remainingTimeS <= 600 && remainingTimeS > 595) {   // 10 minutes
         DEBUG_PRINT("10 minute remaining");
         dfPlayer.playFolder(3, 3);
+        lastVoice = millis();
+      } else if (remainingTimeS <= 720 && remainingTimeS > 715) {   // 12 minutes
+        dfPlayer.playFolder(2, random(1, 80));
+        lastVoice = millis();
+      } else if (remainingTimeS <= 1320 && remainingTimeS > 1315) { // 22 minutes
+        dfPlayer.playFolder(2, random(1, 80));
         lastVoice = millis();
       }
     }
@@ -230,8 +242,9 @@ void initDfPlayer() {
   Serial.println(F("DFPlayer Mini online."));
 #endif
 
-  dfPlayer.volume(20);  //Set volume value. From 0 to 30
-  dfPlayer.play(1);  //Play the first mp3
+  dfPlayer.volume(17);  //Set volume value. From 0 to 30
+  //dfPlayer.play(1);  //for debuging
+  dfPlayer.playFolder(3, 7);
 }
 
 void printDfPlayerDetail(uint8_t type, int value) {
