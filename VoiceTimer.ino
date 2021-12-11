@@ -11,6 +11,8 @@
 #define DFPLAYER_RX_PIN 10
 #define DFPLAYER_TX_PIN 11
 
+#define NB_OF_MUSIC 13
+
 SoftwareSerial dfPlayerSerial(DFPLAYER_RX_PIN, DFPLAYER_TX_PIN);
 DFRobotDFPlayerMini dfPlayer;
 bool dfPlayerOn = false;
@@ -121,7 +123,7 @@ void loop()
       timer = 0;
       timeSelected = 0;
       powerDfPlayer();
-      dfPlayer.playFolder(2, random(1, 80));
+      dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
     }
 
     //say time remaining auto
@@ -134,7 +136,7 @@ void loop()
       } else if (remainingTimeS <= 120 && remainingTimeS > 115) {   // 2 minutes
         Serial.println("2 minutes remaining");
         powerDfPlayer();
-        dfPlayer.playFolder(2, random(1, 80));
+        dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
         lastVoice = millis();
       } else if (remainingTimeS <= 180 && remainingTimeS > 175) {   // 3 minutes
         Serial.println("3 minutes remaining");
@@ -144,7 +146,7 @@ void loop()
       } else if (remainingTimeS <= 300 && remainingTimeS > 295) {   // 5 minutes
         Serial.println("5 minutes remaining");
         powerDfPlayer();
-        dfPlayer.playFolder(2, random(1, 80));
+        dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
         lastVoice = millis();
       } else if (remainingTimeS <= 600 && remainingTimeS > 595) {   // 10 minutes
         Serial.println("10 minutes remaining");
@@ -154,12 +156,12 @@ void loop()
       } else if (remainingTimeS <= 720 && remainingTimeS > 715) {   // 12 minutes
         Serial.println("12 minutes remaining");
         powerDfPlayer();
-        dfPlayer.playFolder(2, random(1, 80));
+        dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
         lastVoice = millis();
       } else if (remainingTimeS <= 1320 && remainingTimeS > 1315) { // 22 minutes
         Serial.println("22 minutes remaining");
         powerDfPlayer();
-        dfPlayer.playFolder(2, random(1, 80));
+        dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
         lastVoice = millis();
       }
     }
