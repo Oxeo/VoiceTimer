@@ -29,21 +29,24 @@ unsigned long led1Timer = 0;
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("start init...");
+  Serial.println("start init");
 
   pinMode(LED1, OUTPUT);
   pinMode(BUTTON1, INPUT);
   pinMode(BUTTON2, INPUT);
   pinMode(DFPLAYER_BUSY, INPUT);
   pinMode(DFPLAYER_CMD, OUTPUT);
-
-  initDfPlayer();
+  
   randomSeed(analogRead(0));
 
   attachInterrupt(digitalPinToInterrupt(BUTTON1), button1Handler, CHANGE);
   attachInterrupt(digitalPinToInterrupt(BUTTON2), button2Handler, CHANGE);
 
+  dfPlayerSerial.begin(9600);
+
   Serial.println("init done");
+  delay(100);
+  sleepForever();
 }
 
 void loop()
@@ -98,7 +101,8 @@ void loop()
       dfPlayer.playFolder(4, remainingTime);
     } else {
       powerDfPlayer();
-      dfPlayer.playFolder(3, 4);
+      //dfPlayer.playFolder(3, 4);
+      dfPlayer.playFolder(2, random(1, NB_OF_MUSIC));
     }
 
     delay(100);
@@ -186,18 +190,28 @@ void setTimerOff() {
 }
 
 void sleepForever() {
+  digitalWrite(LED1, LOW);
+  digitalWrite(DFPLAYER_CMD, LOW);
+  digitalWrite(DFPLAYER_TX_PIN, LOW);
+  
+  pinMode(LED1, INPUT);
   pinMode(DFPLAYER_CMD, INPUT);
   pinMode(DFPLAYER_TX_PIN, INPUT);
-  pinMode(LED1, INPUT);
   Serial.println("sleep forever");
-  delay(1000);
+  delay(100);
   
   LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
   
   Serial.println("wake up");
-  pinMode(DFPLAYER_CMD, OUTPUT);
-  pinMode(DFPLAYER_TX_PIN, OUTPUT);
   pinMode(LED1, OUTPUT);
+  pinMode(DFPLAYER_CMD, OUTPUT);
+
+  // First write, then set output to fix serial
+  digitalWrite(DFPLAYER_TX_PIN, HIGH);  
+  pinMode(DFPLAYER_TX_PIN, OUTPUT);
+
+  digitalWrite(LED1, LOW);
+  digitalWrite(DFPLAYER_CMD, LOW);
 
   sleepForeverTimer = millis();
 }
@@ -205,7 +219,7 @@ void sleepForever() {
 void shutdownDfPlayer() {
   if (dfPlayerOn) {
     while(digitalRead(DFPLAYER_BUSY) == LOW) {}
-    dfPlayerSerial.end();
+    delay(100);
     digitalWrite(DFPLAYER_CMD, LOW);
     dfPlayerOn = false;
   }
@@ -215,33 +229,15 @@ void powerDfPlayer() {
   if (dfPlayerOn == false) {
     digitalWrite(DFPLAYER_CMD, HIGH);
     delay(150);
-    dfPlayer.volume(20);  //first not working
-    dfPlayer.volume(20);  //Set volume value. From 0 to 30
+    
+    dfPlayer.begin(dfPlayerSerial, false, false);
+    delay(500);
+    dfPlayer.volume(17);  //Set volume value. From 0 to 30
     dfPlayerOn = true;
   }
 
   dfPlayerOnTimer = millis();
   sleepForeverTimer = millis();
-}
-
-void initDfPlayer() {
-  digitalWrite(DFPLAYER_CMD, HIGH);
-  delay(1000);
-  
-  dfPlayerSerial.begin(9600);
-
-  if (!dfPlayer.begin(dfPlayerSerial)) {
-    Serial.println(F("Unable to begin:"));
-    Serial.println(F("1.Please recheck the connection!"));
-    Serial.println(F("2.Please insert the SD card!"));
-    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
-  }
-
-  Serial.println(F("DFPlayer Mini online."));
-
-  dfPlayer.volume(20);  //Set volume value. From 0 to 30
-  //dfPlayer.play(1);
-  dfPlayerOn = true;
 }
 
 void button1Handler() {
